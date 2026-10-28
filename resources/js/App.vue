@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 
 const tasks = ref([]);
 const newTitle = ref("");
+const error = ref("");
 
 async function loadTasks() {
     const res = await fetch("/api/tasks");
@@ -10,15 +11,23 @@ async function loadTasks() {
 }
 
 async function addTask() {
-    if (!newTitle.value.trim()) return;
-    await fetch("/api/tasks", {
+    error.value = "";
+
+    const res = await fetch("api/tasks", {
         method: "POST",
         headers: {
-            "Content-Type": "application/json",
+            "content-type": "application/json",
             Accept: "application/json",
         },
         body: JSON.stringify({ title: newTitle.value }),
     });
+
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        error.value =
+            data.errors?.title?.[0] ?? data.message ?? "Something went wrong.";
+        return;
+    }
     newTitle.value = "";
     loadTasks();
 }
@@ -96,6 +105,7 @@ onMounted(loadTasks);
                 <input
                     v-model="newTitle"
                     placeholder="New task..."
+                    @input="error = ''"
                     class="flex-1 bg-gray-800 border border-gray-700 text-gray-100 placeholder-gray-500 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
@@ -105,6 +115,9 @@ onMounted(loadTasks);
                     Add
                 </button>
             </form>
+            <p v-if="error" class="text-red-400 text-sm -mt-2 mb-4">
+                {{ error }}
+            </p>
 
             <p v-if="tasks.length === 0" class="text-gray-500 text-center py-4">
                 No tasks yet. Add one above!

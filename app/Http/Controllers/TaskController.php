@@ -18,6 +18,9 @@ class TaskController extends Controller
     {
         $data = $request->validate([
             'title' => 'required|string|max:255'
+        ],[
+            'title.required' => 'Please enter a task title.',
+            'title.max' => 'Task title must be 255 characters or less.',
         ]);
 
         return Task::create($data);
