@@ -40,6 +40,44 @@ async function deleteTask(task) {
     loadTasks();
 }
 
+// --- Editing ---
+const editingId = ref(null); // which task is being edited (null = none)
+const editTitle = ref(""); // the text in the edit box
+
+// Custom directive: auto-focus an input when it appears
+const vFocus = { mounted: (el) => el.focus() };
+
+function startEdit(task) {
+    editingId.value = task.id;
+    editTitle.value = task.title;
+}
+
+function cancelEdit() {
+    editingId.value = null;
+}
+
+async function saveEdit(task) {
+    if (editingId.value !== task.id) return; // already saved or cancelled
+
+    const title = editTitle.value.trim();
+    if (!title || title === task.title) {
+        cancelEdit();
+        return;
+    }
+
+    await fetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+        },
+        body: JSON.stringify({ title }),
+    });
+
+    cancelEdit();
+    loadTasks();
+}
+
 onMounted(loadTasks);
 </script>
 
@@ -49,6 +87,10 @@ onMounted(loadTasks);
             class="max-w-md mx-auto bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-800"
         >
             <h1 class="text-2xl font-bold mb-4 text-white">My Tasks</h1>
+
+            <p class="text-sm text-gray-500 mb-4 -mt-2">
+                Double-click a task to edit it
+            </p>
 
             <form @submit.prevent="addTask" class="flex gap-2 mb-4">
                 <input
@@ -80,11 +122,23 @@ onMounted(loadTasks);
                         @change="toggleTask(task)"
                         class="w-4 h-4 accent-blue-500"
                     />
+                    <input
+                        v-if="editingId === task.id"
+                        v-model="editTitle"
+                        v-focus
+                        @keyup.enter="saveEdit(task)"
+                        @keyup.esc="cancelEdit"
+                        @blur="saveEdit(task)"
+                        class="flex-1 bg-gray-700 border border-blue-500 text-gray-100 rounded px-2 py-1 focus:outline-none"
+                    />
                     <span
-                        class="flex-1"
+                        v-else
+                        @dblclick="startEdit(task)"
+                        class="flex-1 cursor-pointer select-none"
                         :class="{
                             'line-through text-gray-500': task.completed,
                         }"
+                        title="Double-click to edit"
                     >
                         {{ task.title }}
                     </span>
