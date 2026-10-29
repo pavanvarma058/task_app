@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 
 const tasks = ref([]);
 const newTitle = ref("");
@@ -87,6 +87,21 @@ async function saveEdit(task) {
     loadTasks();
 }
 
+// --- Filtering ---
+const filter = ref("all"); // 'all' | 'active' | 'completed'
+
+const filteredTasks = computed(() => {
+    if (filter.value === "active")
+        return tasks.value.filter((t) => !t.completed);
+    if (filter.value === "completed")
+        return tasks.value.filter((t) => t.completed);
+    return tasks.value;
+});
+
+const remaining = computed(
+    () => tasks.value.filter((t) => !t.completed).length,
+);
+
 onMounted(loadTasks);
 </script>
 
@@ -118,14 +133,15 @@ onMounted(loadTasks);
             <p v-if="error" class="text-red-400 text-sm -mt-2 mb-4">
                 {{ error }}
             </p>
-
-            <p v-if="tasks.length === 0" class="text-gray-500 text-center py-4">
-                No tasks yet. Add one above!
+            <p
+                v-else-if="filteredTasks.length === 0"
+                class="text-gray-500 text-center py-4"
+            >
+                No {{ filter }} tasks.
             </p>
-
             <ul class="space-y-2">
                 <li
-                    v-for="task in tasks"
+                    v-for="task in filteredTasks"
                     :key="task.id"
                     class="flex items-center gap-3 p-3 bg-gray-800 border border-gray-700 rounded-lg"
                 >
@@ -163,6 +179,31 @@ onMounted(loadTasks);
                     </button>
                 </li>
             </ul>
+            <div
+                v-if="tasks.length"
+                class="flex items-center justify-between mt-4 text-sm text-gray-400"
+            >
+                <span
+                    >{{ remaining }}
+                    {{ remaining === 1 ? "task" : "tasks" }} left</span
+                >
+
+                <div class="flex gap-1">
+                    <button
+                        v-for="f in ['all', 'active', 'completed']"
+                        :key="f"
+                        @click="filter = f"
+                        class="px-3 py-1 rounded-md capitalize"
+                        :class="
+                            filter === f
+                                ? 'bg-blue-600 text-white'
+                                : 'hover:bg-gray-800'
+                        "
+                    >
+                        {{ f }}
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </template>
